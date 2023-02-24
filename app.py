@@ -1,6 +1,9 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 from bs4 import BeautifulSoup as bs
 from flask_cors import CORS, cross_origin
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
 import os
 import re
 import requests
@@ -17,42 +20,60 @@ def index():
 
 @app.route('/<path:path>')
 def catch_all(path):
-    # Adds the fickle https:// tag to the front of the url JUST in case
-    if "https://" not in path:
+    if ".com" in path and "https://" not in path:
         path = "https://" + path
 
-    headers = {
-        'User-Agent': request.headers.get('User-Agent'),
-        'referer': 'https://google.com',
-        'Accept': request.headers.get('Accept'),
-        'Accept-Language': request.headers.get('Accept-Language'),
-    }
-
-    try: 
-        response = requests.get(path, headers=headers)
-    except:
-        pass
-        
     hostname = urlparse(path).hostname
 
-    try:
-        soup = bs(response.content, "html.parser")
-        tags = soup.find_all()
-        for tag in tags:
-            if tag.has_attr('href'):
-                if "https://" not in tag.attrs['href']:
-                    tag.attrs['href'] = 'https://' + hostname + tag.attrs['href']
+    if 'wsj' in hostname: 
+        return redirect('https://facebook.com/l.php?u=' + path)
+    elif request.headers.get('referer') is not None:
+        try:
+            if "/gen_" in path:
+                return ('', 204)
+            else:
+                redirect_url = 'https://' + urlparse(urlparse(request.headers.get('referer')).path[1:]).hostname + '/' + path
+                return redirect(redirect_url)
+        except:
+            return ('', 204)
+    else:
+        headers = {
+            'User-Agent': request.headers.get('User-Agent'),
+            'referer': 'https://google.com',
+            'X-Forwarded-For': request.remote_addr,
+            'Accept': 'text/html',
+            'Accept-Language': request.headers.get('Accept-Language'),
+            'Connection': 'keep-alive',
+        }
+
+        try: 
+            response = requests.get(path, headers=headers)
+            print(response.status_code)
+            if response.status_code != 200:
+                options = Options()
+                options.add_argument("--headless")
+                driver = webdriver.Chrome(options=options)
+                driver.get(path)
+                html = driver.page_source
+                response.content = html
+                driver.close()
+        except:
+            pass
+            
+
+        try:
+            soup = bs(response.content, "html.parser")
+            tags = soup.find_all()
+            for tag in tags:
+                if tag.has_attr('href'):
+                    if "https:" not in tag.attrs['href']:
+                        tag.attrs['href'] = 'https://' + hostname + tag.attrs['href']
         
-        # Per Domain cleanup
-        if "economist" in hostname:
-            for div in soup.find_all("div", {'class':'e5tfikp1'}): 
-                div.decompose()
-            soup.find('div', class_='e5tfikp2').decompose()
-        return soup.prettify()
-    except:
-        return ('', 204)
+            return soup.prettify()
+        except:
+            return ('', 204)
 
 
 if __name__ == '__main__':
-    # run app in debug mode on port 5000
-    app.run(debug=True, port=8080)
+    app.run()
+
