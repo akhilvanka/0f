@@ -22,7 +22,7 @@ Nope
 
 #### What websites does this work on?
 
-Honestly, there's so many news sources that I haven't had the time to try them all. I can say that the NYT, FT, WP, and Economist all work with minimal hiccups. The WSJ only works through a redirect, which also requires the browser to be in Incognito.
+Honestly, there's so many news sources that I haven't had the time to try them all. I can say that the FT, WP, and Economist all work with minimal hiccups. The WSJ only works through a redirect, which also requires the browser to be in Incognito.
 
 
 
