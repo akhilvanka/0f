@@ -2,7 +2,8 @@ from flask import Flask, request, render_template, redirect
 from bs4 import BeautifulSoup as bs
 from flask_cors import CORS, cross_origin
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
+#from selenium.webdriver.chrome.options import Options
 
 import os
 import re
@@ -25,9 +26,9 @@ def catch_all(path):
 
     hostname = urlparse(path).hostname
 
-    if 'wsj' in hostname: 
-        return redirect('https://facebook.com/l.php?u=' + path)
-    elif request.headers.get('referer') is not None:
+        # if 'wsj' in hostname: 
+        #     return redirect('https://facebook.com/l.php?u=' + path)
+    if request.headers.get('referer') is not None:
         try:
             if "/gen_" in path:
                 return ('', 204)
@@ -49,14 +50,23 @@ def catch_all(path):
         try: 
             response = requests.get(path, headers=headers)
             print(response.status_code)
-            if response.status_code != 200:
-                options = Options()
+            if response.status_code != 200 or 'nytimes' in hostname:
+                options = uc.ChromeOptions()
                 options.add_argument("--headless")
-                driver = webdriver.Chrome(options=options)
+                driver = uc.Chrome(options=options)
                 driver.get(path)
                 html = driver.page_source
                 response.content = html
                 driver.close()
+                # options = Options()
+                # options.add_argument("--headless")
+                # driver = webdriver.Chrome(options=options)
+                # driver.get(path)
+                # html = driver.page_source
+                # response.content = html
+                # driver.close()
+            elif 'wsj' in hostname:
+                return redirect('https://facebook.com/l.php?u=' + path)
         except:
             pass
             
